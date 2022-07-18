@@ -1,0 +1,18 @@
+version: "3.3"
+services:
+  oracle:
+    image: "switchboardlabs/node:${SBV2_ORACLE_VERSION:-dev-v2-07-11-22}" # https://hub.docker.com/r/switchboardlabs/node/tags
+    network_mode: host
+    restart: always
+    secrets:
+      - PAYER_SECRETS
+    environment:
+      - VERBOSE=1
+      - LIVE=1
+      - CLUSTER=${CLUSTER:-localnet}
+      - HEARTBEAT_INTERVAL=30 # Seconds
+      - ORACLE_KEY=76wosLZH5zmBYx26nkUScm1bi92J67a5BgMByxzHiQEm
+    #  - RPC_URL=${RPC_URL}
+secrets:
+  PAYER_SECRETS:
+    file: /Users/jack/.config/solana/id.json
