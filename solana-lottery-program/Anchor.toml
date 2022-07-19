@@ -2,10 +2,10 @@
 seeds = false
 
 [programs.localnet]
-solana_lottery_program = "AVSqqWEEWgtj684KJX111VpS7DSozWuZ2HGWKUK3omFn"
+solana_lottery_program = "5AQqMzcMdRcdvGydG6UGrsL4164VwZHuHiHcHYFWhg7"
 
 [programs.devnet]
-solana_lottery_program = "AVSqqWEEWgtj684KJX111VpS7DSozWuZ2HGWKUK3omFn"
+solana_lottery_program = "5AQqMzcMdRcdvGydG6UGrsL4164VwZHuHiHcHYFWhg7"
 
 [registry]
 url = "https://anchor.projectserum.com"
@@ -13,6 +13,10 @@ url = "https://anchor.projectserum.com"
 [provider]
 cluster = "localnet"
 wallet = "/Users/jack/.config/solana/id.json"
+
+# wait for validator to successfully clone all acounts from devnet
+[test]
+startup_wait = 15000
 
 [test.validator]
 url = "https://dry-polished-bush.solana-devnet.discover.quiknode.pro/ed6aaf728f5cc938afefe738d60b1e43853877f6/"
@@ -94,4 +98,6 @@ address = "ESFMocSxRuVR3sd724Pzcdj8XZik55fixjJoQiqTiFT9"
 address = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
 
 [scripts]
-tests = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+oracle = "./start-oracle.sh"
+oracle_stop = "docker-compose down"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"

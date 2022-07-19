@@ -9,10 +9,11 @@ use mpl_token_metadata::instruction::{create_master_edition_v3, create_metadata_
 use mpl_token_metadata::state::{Collection, DataV2};
 use switchboard_v2::{VrfAccountData, VrfRequestRandomness};
 
-declare_id!("AVSqqWEEWgtj684KJX111VpS7DSozWuZ2HGWKUK3omFn");
+declare_id!("5AQqMzcMdRcdvGydG6UGrsL4164VwZHuHiHcHYFWhg7");
 
 #[program]
 pub mod solana_lottery_program {
+
     use super::*;
 
     pub fn init_lottery(ctx: Context<InitLottery>, params: InitLotteryParams) -> Result<()> {
@@ -153,14 +154,15 @@ pub mod solana_lottery_program {
         // set state
         state.authority = ctx.accounts.admin.key();
         state.vrf = ctx.accounts.vrf.key();
-        state.bump = *ctx.bumps.get("state").unwrap();
+        state.bump = *ctx.bumps.get("vrf_state").unwrap();
         state.max_result = u64::MAX;
+        //state.max_result = params.max_result;
 
         // set vault manager config
         let lottery_manager = &mut ctx.accounts.lottery_manager;
         lottery_manager.prize_mint = ctx.accounts.prize_mint.key();
-        lottery_manager.draw_duration_ms = params.draw_duration_ms;
-        lottery_manager.cutoff_time_ms = 0;
+        lottery_manager.draw_duration = params.draw_duration;
+        lottery_manager.cutoff_time = 0;
         lottery_manager.ticket_price = params.ticket_price;
         lottery_manager.purchase_mint = ctx.accounts.purchase_mint.clone().key();
         lottery_manager.purchase_vault = ctx.accounts.purchase_vault.clone().key();
@@ -168,6 +170,7 @@ pub mod solana_lottery_program {
         lottery_manager.circulating_ticket_supply = 0;
         lottery_manager.ticket_metadata_symbol = params.ticket_metadata_symbol;
         lottery_manager.ticket_metadata_uri = params.ticket_metadata_uri;
+        lottery_manager.max_result = params.max_result;
 
         Ok(())
     }
@@ -176,13 +179,13 @@ pub mod solana_lottery_program {
         ctx.accounts.lottery_manager.circulating_ticket_supply += 1;
 
         // if cutoff_time is 0, drawing has never started
-        if ctx.accounts.lottery_manager.cutoff_time_ms == 0 {
+        if ctx.accounts.lottery_manager.cutoff_time == 0 {
             // get current timestamp from Clock program
-            let now = get_current_time_ms();
+            let now = get_current_time();
 
             // set last draw time to now
-            ctx.accounts.lottery_manager.cutoff_time_ms =
-                now as u64 + ctx.accounts.lottery_manager.draw_duration_ms;
+            ctx.accounts.lottery_manager.cutoff_time =
+                now as u64 + ctx.accounts.lottery_manager.draw_duration;
         };
 
         // do not allow user to pass in zeroed array of numbers
@@ -229,6 +232,7 @@ pub mod solana_lottery_program {
                 ctx.accounts.token_program.to_account_info(),
                 mint_to_accounts,
                 &[&[
+                    b"lottery_manager",
                     params.lottery_name.as_bytes(),
                     &[*ctx.bumps.get("lottery_manager").unwrap()],
                 ]],
@@ -283,6 +287,7 @@ pub mod solana_lottery_program {
             &metadata_ix,
             &create_metadata_accounts,
             &[&[
+                b"lottery_manager",
                 params.lottery_name.as_bytes(),
                 &[*ctx.bumps.get("lottery_manager").unwrap()],
             ]],
@@ -315,17 +320,19 @@ pub mod solana_lottery_program {
             &master_edition_ix,
             &create_master_edition_accounts,
             &[&[
+                b"lottery_manager",
                 params.lottery_name.as_bytes(),
                 &[*ctx.bumps.get("lottery_manager").unwrap()],
             ]],
         )?;
+
         Ok(())
     }
 
     // draw sends a randomness request to the switchboard oracle
     // draw must be called by the admin of the lottery as the admin has permissions to request the randomness
     pub fn draw(ctx: Context<Draw>, params: DrawParams) -> Result<()> {
-        let cutoff_time = ctx.accounts.lottery_manager.cutoff_time_ms;
+        let cutoff_time = ctx.accounts.lottery_manager.cutoff_time;
 
         // if no tickets have been purchased, do not draw
         if cutoff_time == 0 {
@@ -337,11 +344,12 @@ pub mod solana_lottery_program {
             return Err(SLPErrorCode::CallDispense.into());
         }
 
-        // if time remaining then error
-        let now = get_current_time_ms();
-        if now < cutoff_time {
-            return Err(SLPErrorCode::TimeRemaining.into());
-        }
+        //// if time remaining then error
+        /// instead should I be counting by slots?
+        //let now = get_current_time();
+        //if now < cutoff_time {
+        //    return Err(SLPErrorCode::TimeRemaining.into());
+        //}
 
         let switchboard_program = ctx.accounts.switchboard_program.to_account_info();
 
@@ -360,15 +368,14 @@ pub mod solana_lottery_program {
             token_program: ctx.accounts.token_program.to_account_info(),
         };
 
-        let state = &mut ctx.accounts.vrf_state.load()?;
+        let vrf_key = ctx.accounts.vrf.key().clone();
+        let authority_key = ctx.accounts.admin.key().clone();
 
-        let vrf_key = ctx.accounts.vrf.key.clone();
-        let authority_key = ctx.accounts.admin.key.clone();
         let state_seeds: &[&[&[u8]]] = &[&[
             b"STATE",
             vrf_key.as_ref(),
             authority_key.as_ref(),
-            &[state.bump],
+            &[params.vrf_client_state_bump],
         ]];
 
         // request randomness from the oracle
@@ -387,15 +394,26 @@ pub mod solana_lottery_program {
     }
 
     // draw result will be called by the switchboard oracle
-    // TODO: how to check that only the oracle or admin can call it
+    // will fail if not called by oracle because only the oracle can populate the vrf account state
     pub fn draw_result(ctx: Context<DrawResult>) -> Result<()> {
-        let vrf = VrfAccountData::new(&ctx.accounts.vrf)?;
-        let result_buffer = vrf.get_result()?;
-        if result_buffer == [0u8; 32] {
-            msg!("vrf buffer empty");
-            return Ok(());
+
+        // if not locked, draw needs to be called first
+        if !ctx.accounts.lottery_manager.locked {
+            return Err(SLPErrorCode::CallDraw.into());
         }
 
+        // parse vrf data account
+        let vrf = VrfAccountData::new(&ctx.accounts.vrf)?;
+
+        // get the random result
+        let result_buffer = match vrf.get_result() {
+            Ok(result_buffer) => result_buffer,
+            Err(e) => {
+                return Err(e)
+            }
+        };
+
+        // if the result is the same as the previous, it hasn't been updated yet
         let state = &mut ctx.accounts.state.load_mut()?;
         let max_result = state.max_result;
         if result_buffer == state.result_buffer {
@@ -403,16 +421,18 @@ pub mod solana_lottery_program {
             return Ok(());
         }
 
+        // parse the randomess value
         msg!("Result buffer is {:?}", result_buffer);
         let value: &[u128] = bytemuck::cast_slice(&result_buffer[..]);
         msg!("u128 buffer {:?}", value);
         let result = value[0] % max_result as u128;
         msg!("Current VRF Value [0 - {}) = {}!", max_result, result);
 
+        // set the new result in the client state
         if state.result != result {
             state.result_buffer = result_buffer;
             state.result = result;
-            state.last_timestamp = get_current_time_ms() as i64;
+            state.last_timestamp = get_current_time() as i64;
         }
 
         // parse oracle result into 6 numbers
@@ -425,8 +445,14 @@ pub mod solana_lottery_program {
         let d5: u8 = (&formatted_numbers[5..6]).parse().unwrap();
 
         // set numbers in the lottery manager account
-        ctx.accounts.lottery_manager.previous_winning_numbers = [d0, d1, d2, d3, d4, d5];
-        ctx.accounts.lottery_manager.winning_numbers = [d0, d1, d2, d3, d4, d5];
+        let winning_numbers = [d0, d1, d2, d3, d4, d5];
+        ctx.accounts.lottery_manager.previous_winning_numbers = winning_numbers;
+        ctx.accounts.lottery_manager.winning_numbers = winning_numbers;
+
+        // emit event that we have new winning numbers
+        emit!(DrawResultSuccessful{
+            winning_numbers: winning_numbers
+        });
 
         Ok(())
     }
@@ -441,11 +467,11 @@ pub mod solana_lottery_program {
             return Err(SLPErrorCode::PassInWinningPDA.into());
         }
 
-        let now = get_current_time_ms();
+        let now = get_current_time();
 
         // set next cutoff time
-        ctx.accounts.lottery_manager.cutoff_time_ms =
-            now + ctx.accounts.lottery_manager.draw_duration_ms;
+        ctx.accounts.lottery_manager.cutoff_time =
+            now + ctx.accounts.lottery_manager.draw_duration;
 
         // unlock buy tickets
         ctx.accounts.lottery_manager.locked = false;
@@ -491,6 +517,7 @@ pub mod solana_lottery_program {
                 ctx.accounts.token_program.clone().to_account_info(),
                 transfer_accounts,
                 &[&[
+                    b"lottery_manager",
                     params.lottery_name.as_bytes(),
                     &[*ctx.bumps.get("lottery_manager").unwrap()],
                 ]],
@@ -559,7 +586,7 @@ pub struct InitLottery<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
 
-    #[account(token::mint = prize_mint, token::authority = admin)]
+    #[account(mut, token::mint = prize_mint, token::authority = admin)]
     pub admin_prize_ata: Account<'info, token::TokenAccount>,
 
     pub system_program: Program<'info, System>,
@@ -578,15 +605,16 @@ pub struct LotteryManager {
     pub prize_vault: Pubkey,
     pub collection_mint: Pubkey,
     pub circulating_ticket_supply: u64,
-    pub cutoff_time_ms: u64,   // cutoff time for next draw
-    pub draw_duration_ms: u64, // duration until next draw time
+    pub cutoff_time: u64,   // in seconds, cutoff time for next draw
+    pub draw_duration: u64, // in seconds, duration until next draw time
     pub ticket_price: u64,
     pub winning_numbers: [u8; 6],
     pub previous_winning_numbers: [u8; 6],
-    pub locked: bool, // when draw is called, lock the program until dispense is called
+    pub locked: bool, // when draw is called, lock the program until draw_result and dispense are called
     pub ticket_metadata_name: String,
     pub ticket_metadata_symbol: String,
     pub ticket_metadata_uri: String,
+    pub max_result: u64, // highest number that can be returned by the VRF, use to set odds
 }
 
 impl LotteryManager {
@@ -597,9 +625,10 @@ impl LotteryManager {
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct InitLotteryParams {
     pub lottery_name: String,
-    pub draw_duration_ms: u64,
+    pub draw_duration: u64, // in seconds
     pub ticket_price: u64,
     pub prize_amount: u64,
+    pub max_result: u64,
     pub collection_metadata_symbol: String,
     pub collection_metadata_uri: String,
     pub ticket_metadata_symbol: String,
@@ -638,7 +667,7 @@ pub struct Buy<'info> {
     #[account(mut, token::mint = purchase_mint, token::authority = lottery_manager, seeds = [b"purchase_vault", params.lottery_name.as_bytes()], bump)]
     pub purchase_vault: Box<Account<'info, token::TokenAccount>>,
 
-    #[account(mut)]
+    #[account(mut, seeds = [b"lottery_manager", params.lottery_name.as_bytes()], bump)]
     pub lottery_manager: Box<Account<'info, LotteryManager>>,
 
     #[account(mut)]
@@ -734,25 +763,28 @@ pub struct Draw<'info> {
     pub switchboard_program: AccountInfo<'info>,
 
     /// CHECK: TODO
-    #[account(mut)]
+    #[account(mut, constraint = vrf.owner.as_ref() == switchboard_program.key().as_ref())]
     pub vrf: AccountInfo<'info>,
 
     /// CHECK: TODO
+    #[account(mut, constraint = oracle_queue.owner.as_ref() == switchboard_program.key().as_ref())]
     pub oracle_queue: AccountInfo<'info>,
 
     /// CHECK: TODO
     pub queue_authority: AccountInfo<'info>,
 
     /// CHECK: TODO
+    #[account(constraint = data_buffer.owner.as_ref() == switchboard_program.key().as_ref())]
     pub data_buffer: AccountInfo<'info>,
 
     /// CHECK: TODO
-    #[account(mut)]
+    #[account(mut, constraint = permission.owner.as_ref() == switchboard_program.key().as_ref())]
     pub permission: AccountInfo<'info>,
 
     #[account(mut, constraint = escrow.owner == program_state.key())]
     pub escrow: Account<'info, token::TokenAccount>,
 
+    #[account(mut, constraint = vrf_payment_wallet.owner == admin.key())]
     pub vrf_payment_wallet: Account<'info, token::TokenAccount>,
 
     /// CHECK: TODO
@@ -760,6 +792,7 @@ pub struct Draw<'info> {
     pub recent_blockhashes: AccountInfo<'info>,
 
     /// CHECK: TODO
+    #[account(constraint = program_state.owner.as_ref() == switchboard_program.key().as_ref())]
     pub program_state: AccountInfo<'info>,
 
     #[account(mut)]
@@ -788,6 +821,11 @@ pub struct DrawResult<'info> {
 
     #[account(mut)]
     pub lottery_manager: Account<'info, LotteryManager>,
+}
+
+#[event]
+pub struct DrawResultSuccessful {
+    pub winning_numbers: [u8; 6],
 }
 
 #[derive(Accounts)]
@@ -862,6 +900,9 @@ pub enum SLPErrorCode {
     #[msg("Must call Dispense")]
     CallDispense,
 
+    #[msg("Must call Draw")]
+    CallDraw,
+
     #[msg("Invalid Numbers")]
     InvalidNumbers,
 
@@ -900,6 +941,6 @@ pub enum SLPErrorCode {
 }
 
 // retrieve current unix timestamp converted to milliseconds
-fn get_current_time_ms() -> u64 {
-    return (Clock::get().unwrap().unix_timestamp * 1000) as u64;
+fn get_current_time() -> u64 {
+    return Clock::get().unwrap().unix_timestamp as u64;
 }

@@ -2,7 +2,7 @@
 
 mkdir -p .anchor/test-ledger
 
-solana-test-validator -r --ledger .anchor/test-ledger --mint D5B1iguWRmkrjiNU6zSt1LxwDocFRyzfab38y4JXwed --bind-address 0.0.0.0 --url https://api.devnet.solana.com --rpc-port 8899  --clone 2TfB33aLaneQb5TNVwyDz3jSZXS6jdW2ARw1Dgf84XCG `# programId` \
+solana-test-validator -r --ledger .anchor/test-ledger --mint D5B1iguWRmkrjiNU6zSt1LxwDocFRyzfab38y4JXwed --bind-address 0.0.0.0 --url https://devnet.genesysgo.net --rpc-port 8899 --deactivate-feature 4d5AKtxoh93Dwm1vHXUU3iRATuMndx1c431KgT2td52r --clone 2TfB33aLaneQb5TNVwyDz3jSZXS6jdW2ARw1Dgf84XCG `# programId` \
 --clone J4CArpsbrZqu1axqQ4AnrqREs3jwoyA1M5LMiQQmAzB9 `# programDataAddress` \
 --clone CKwZcshn4XDvhaWVH9EXnk3iu19t6t5xP2Sy2pD6TRDp `# idlAddress` \
 --clone BYM81n8HvTJuqZU1PmTVcwZ9G8uoji7FKM6EaPkwphPt `# programState` \
@@ -18,4 +18,6 @@ solana-test-validator -r --ledger .anchor/test-ledger --mint D5B1iguWRmkrjiNU6zS
 --clone D5B1iguWRmkrjiNU6zSt1LxwDocFRyzfab38y4JXwed `# oracleAuthority` \
 --clone 7hGRQmgrsqXNQpb2ynedd8KqofgQip1LE7Mww2cmJi5e `# oracleEscrow` \
 --clone ESFMocSxRuVR3sd724Pzcdj8XZik55fixjJoQiqTiFT9 `# oraclePermissions` \
---clone 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU `# additionalClonedAccounts`
+--clone 4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU `# additionalClonedAccounts` \
+--clone metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s `# metaplex` \
+--clone PwDiXFxQsGra4sFFTT8r1QWRMd4vfumiWC1jfWNfdYT `# metaplex data`
