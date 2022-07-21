@@ -20,7 +20,7 @@
 # start oracle which runs in docker 
 anchor run oracle
 
-# wait for heartbeats to begin (watch log)
+# wait for listener to start
 
 # run tests
 anchor test --skip-local-validator --skip-deploy
@@ -44,7 +44,11 @@ docker-compose down
 - autopick numbers
 - combine tickets
 - multiple owners per ticket
-- configure max result
 - count by slots for draw duration?
 - end lottery after prize dispensed
 - allow integrations with purchase vault by admin of lottery
+- start drawn countdown at lottery init
+- permissionless draw?
+- do i need winnerTicketAta?
+- if draw duration expired, dont allow more buys even if draw hasnt been called
+- sometimes initlottery fails
