@@ -7,72 +7,25 @@ describe("solana-lottery-program", () => {
   const provider = anchor.AnchorProvider.env();
 
   it("smoke test1", async () => {
-    // init payer
-    const payer = anchor.web3.Keypair.generate();
-    await getLamports(provider.connection, payer.publicKey);
-
-    // init both mints and make the payer the authority
-    const purchaseMint = await splToken.createMint(
-      provider.connection,
-      payer,
-      payer.publicKey,
-      payer.publicKey,
-      6
-    );
-
-    // mock NFT
-    const prizeMint = await splToken.createMint(
-      provider.connection,
-      payer,
-      payer.publicKey,
-      payer.publicKey,
-      0
-    );
-
-    // create admin ATA and mint the prize so the admin can transfer to the lottery program on init
-    const adminPrizeAta = await splToken.getOrCreateAssociatedTokenAccount(
-      provider.connection,
-      payer,
-      prizeMint,
-      payer.publicKey
-    );
-    await splToken.mintTo(
-      provider.connection,
-      payer,
-      prizeMint,
-      adminPrizeAta.address,
-      payer.publicKey,
+    // setup
+    const setupAccounts = await setupTest(
+      provider.connection.rpcEndpoint,
+      100,
       1
     );
 
-    // create admin ATA and mint the prize so the admin can transfer to the lottery program on init
-    const adminPurchaseAta = await splToken.getOrCreateAssociatedTokenAccount(
-      provider.connection,
-      payer,
-      purchaseMint,
-      payer.publicKey
-    );
-    await splToken.mintTo(
-      provider.connection,
-      payer,
-      purchaseMint,
-      adminPurchaseAta.address,
-      payer.publicKey,
-      100
-    );
-
-    await sleepMs(1000);
-    console.log("setup complete");
-
     // lottery client
-    const client = new sdk.Client(provider.connection.rpcEndpoint, payer);
+    const client = new sdk.Client(
+      provider.connection.rpcEndpoint,
+      setupAccounts.payer
+    );
 
     const lotteryName = Math.random().toString(36).slice(2, 10);
 
     const initLotteryParams: sdk.InitLotteryParams = {
       lotteryName: lotteryName,
-      prizeMint: prizeMint,
-      purchaseMint: purchaseMint,
+      prizeMint: setupAccounts.prizeMint,
+      purchaseMint: setupAccounts.purchaseMint,
       drawDuration: 10,
       ticketPrice: 1,
       prizeAmount: 1,
@@ -117,6 +70,88 @@ describe("solana-lottery-program", () => {
     console.log("dispenseTxSig: %s", dispenseTxSig);
   });
 });
+
+interface SetupAccounts {
+  prizeMint: anchor.web3.PublicKey;
+  purchaseMint: anchor.web3.PublicKey;
+  prizeAta: anchor.web3.PublicKey;
+  purchaseAta: anchor.web3.PublicKey;
+  payer: anchor.web3.Keypair;
+}
+
+// setup accounts needed to run tests
+async function setupTest(
+  rpcEndpoint: string,
+  purchaseMintToAmount: number,
+  prizeMintToAmount: number
+): Promise<SetupAccounts> {
+  const connection = new anchor.web3.Connection(rpcEndpoint, "confirmed");
+
+  const payer = anchor.web3.Keypair.generate();
+
+  // init payer
+  await getLamports(connection, payer.publicKey);
+
+  // init both mints and make the payer the authority
+  const purchaseMint = await splToken.createMint(
+    connection,
+    payer,
+    payer.publicKey,
+    payer.publicKey,
+    6
+  );
+
+  // mock prize
+  const prizeMint = await splToken.createMint(
+    connection,
+    payer,
+    payer.publicKey,
+    payer.publicKey,
+    0
+  );
+
+  // create admin ATA and mint the prize so the admin can transfer to the lottery program on init
+  const prizeAta = await splToken.getOrCreateAssociatedTokenAccount(
+    connection,
+    payer,
+    prizeMint,
+    payer.publicKey
+  );
+  await splToken.mintTo(
+    connection,
+    payer,
+    prizeMint,
+    prizeAta.address,
+    payer.publicKey,
+    prizeMintToAmount
+  );
+
+  // create admin ATA and mint the prize so the admin can transfer to the lottery program on init
+  const purchaseAta = await splToken.getOrCreateAssociatedTokenAccount(
+    connection,
+    payer,
+    purchaseMint,
+    payer.publicKey
+  );
+  await splToken.mintTo(
+    connection,
+    payer,
+    purchaseMint,
+    purchaseAta.address,
+    payer.publicKey,
+    purchaseMintToAmount
+  );
+
+  const setupAccounts: SetupAccounts = {
+    prizeMint: prizeMint,
+    purchaseMint: purchaseMint,
+    prizeAta: prizeAta.address,
+    purchaseAta: purchaseAta.address,
+    payer: payer,
+  };
+
+  return setupAccounts;
+}
 
 async function getLamports(
   connection: anchor.web3.Connection,

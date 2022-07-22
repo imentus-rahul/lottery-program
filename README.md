@@ -40,10 +40,6 @@ docker-compose down
 
 ### TODO
 
-- configure max tickets
-- autopick numbers
-- combine tickets
-- multiple owners per ticket
 - count by slots for draw duration?
 - end lottery after prize dispensed
 - allow integrations with purchase vault by admin of lottery
@@ -52,3 +48,5 @@ docker-compose down
 - do i need winnerTicketAta?
 - if draw duration expired, dont allow more buys even if draw hasnt been called
 - sometimes initlottery fails
+- store collection accounts in lottery manager
+- lottery_manager constraints

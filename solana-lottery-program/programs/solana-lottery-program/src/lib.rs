@@ -166,6 +166,8 @@ pub mod solana_lottery_program {
         lottery_manager.purchase_mint = ctx.accounts.purchase_mint.key();
         lottery_manager.purchase_vault = ctx.accounts.purchase_vault.key();
         lottery_manager.collection_mint = ctx.accounts.collection_mint.key();
+        lottery_manager.collection_metadata = ctx.accounts.collection_metadata.key();
+        lottery_manager.collection_master_edition = ctx.accounts.collection_master_edition.key();
         lottery_manager.circulating_ticket_supply = 0;
         lottery_manager.ticket_metadata_symbol = params.ticket_metadata_symbol;
         lottery_manager.ticket_metadata_uri = params.ticket_metadata_uri;
@@ -633,6 +635,8 @@ pub struct LotteryManager {
     pub prize_mint: Pubkey,
     pub prize_vault: Pubkey,
     pub collection_mint: Pubkey,
+    pub collection_metadata: Pubkey,
+    pub collection_master_edition: Pubkey,
     pub circulating_ticket_supply: u64,
     pub cutoff_time: u64,   // in seconds, cutoff time for next draw
     pub draw_duration: u64, // in seconds, duration until next draw time
@@ -662,6 +666,8 @@ pub struct LotteryManager {
 impl LotteryManager {
     pub const MAX_SIZE: usize = 8
         + 50
+        + 32
+        + 32
         + 32
         + 32
         + 32

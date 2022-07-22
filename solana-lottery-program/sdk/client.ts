@@ -9,7 +9,6 @@ import { SolanaLotteryProgram } from "../target/types/solana_lottery_program";
 export class Client {
   private program: anchor.Program<SolanaLotteryProgram>;
   private provider: anchor.AnchorProvider;
-  private keypair: anchor.web3.Keypair;
 
   constructor(rpcEndpoint: string, user: anchor.web3.Keypair) {
     const connection = new anchor.web3.Connection(rpcEndpoint, "confirmed");
@@ -25,7 +24,6 @@ export class Client {
 
     this.provider = provider;
     this.program = program;
-    this.keypair = user;
   }
 
   // init a new lottery, returns transaction signature
@@ -245,7 +243,7 @@ export class Client {
       "confirmed"
     );
 
-    const ticketMintKeypair = anchor.web3.Keypair.generate(); 
+    const ticketMintKeypair = anchor.web3.Keypair.generate();
 
     const userTicketAta = await splToken.getAssociatedTokenAddress(
       ticketMintKeypair.publicKey,
@@ -274,32 +272,13 @@ export class Client {
         mplMd.PROGRAM_ID
       );
 
-    // collection metadata
-    let [collectionMd, _collectionMdBump] =
-      await anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("metadata"),
-          mplMd.PROGRAM_ID.toBuffer(),
-          lotteryManagerData.collectionMint.toBuffer(),
-        ],
-        mplMd.PROGRAM_ID
-      );
-
-    // collection master edition
-    let [collectionMe, _collectionMeBump] =
-      await anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("metadata"),
-          mplMd.PROGRAM_ID.toBuffer(),
-          lotteryManagerData.collectionMint.toBuffer(),
-          Buffer.from("edition"),
-        ],
-        mplMd.PROGRAM_ID
-      );
-
     // ticket PDA holds the metadata
     const [ticket, _ticketBump] = anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("ticket"), lotteryManager.toBuffer(), ticketMintKeypair.publicKey.toBuffer()],
+      [
+        Buffer.from("ticket"),
+        lotteryManager.toBuffer(),
+        ticketMintKeypair.publicKey.toBuffer(),
+      ],
       this.program.programId
     );
 
@@ -320,8 +299,8 @@ export class Client {
         purchaseVault: lotteryManagerData.purchaseVault,
         lotteryManager: lotteryManager,
         collectionMint: lotteryManagerData.collectionMint,
-        collectionMetadata: collectionMd,
-        collectionMasterEdition: collectionMe,
+        collectionMetadata: lotteryManagerData.collectionMetadata,
+        collectionMasterEdition: lotteryManagerData.collectionMasterEdition,
         ticketMint: ticketMintKeypair.publicKey,
         ticketMetadata: ticketMd,
         ticketMasterEdition: ticketMe,
@@ -474,16 +453,19 @@ export class Client {
   public async waitForDrawResult(): Promise<number> {
     let listener = null;
     let winningPick: number;
-    let [event, slot] = await new Promise((resolve, _reject) => {
+    let [event, _slot] = await new Promise((resolve, _reject) => {
       // setup handler to watch for when we get the draw result from VRF
-      listener = this.program.addEventListener("DrawResultSuccessful", (event, slot) => {
-        resolve([event, slot]);
-      });
+      listener = this.program.addEventListener(
+        "DrawResultSuccessful",
+        (event, slot) => {
+          resolve([event, slot]);
+        }
+      );
     });
     winningPick = event.winningPick;
     await this.program.removeEventListener(listener);
 
-    return winningPick
+    return winningPick;
   }
 
   public async getWinningTicketPDA(
