@@ -141,12 +141,10 @@ export class Client {
       callback: callback,
       queue: sbTestCtx.queue,
     });
-    console.log("vrf account created: %s", vrfState.toString());
 
     // load account data
     const queue = await sbTestCtx.queue.loadData();
     const vrfAccount = await vrf.loadData();
-    console.log("queue and vrf accounts loaded");
 
     const [programStateAccount, programStateBump] =
       sb.ProgramStateAccount.fromSeed(sbTestCtx.program);
@@ -165,7 +163,6 @@ export class Client {
       sbTestCtx.queue.publicKey,
       vrf.publicKey
     );
-    console.log("program state and permission accounts loaded");
 
     // get the payment mint that the oracle requires
     const paymentMint = await programStateAccount.getTokenMint();

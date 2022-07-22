@@ -361,12 +361,12 @@ pub mod solana_lottery_program {
             return Err(SLPErrorCode::CallDispense.into());
         }
 
-        //// if time remaining then error
-        //// instead should I be counting by slots?
-        //let now = get_current_time();
-        //if now < cutoff_time {
-        //    return Err(SLPErrorCode::TimeRemaining.into());
-        //}
+        // if time remaining then error
+        // TODO: instead should be counting by slots?
+        let now = get_current_time();
+        if now < cutoff_time {
+            return Err(SLPErrorCode::TimeRemaining.into());
+        }
 
         let switchboard_program = ctx.accounts.switchboard_program.to_account_info();
 

@@ -50,3 +50,5 @@ docker-compose down
 - sometimes initlottery fails
 - store collection accounts in lottery manager
 - lottery_manager constraints
+- comp budget exceeded troubleshooting
+- create vrf in same tx as init lottery?

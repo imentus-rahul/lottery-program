@@ -13,6 +13,7 @@ describe("solana-lottery-program", () => {
       100,
       1
     );
+    console.log("setup complete");
 
     // lottery client
     const client = new sdk.Client(
@@ -26,7 +27,7 @@ describe("solana-lottery-program", () => {
       lotteryName: lotteryName,
       prizeMint: setupAccounts.prizeMint,
       purchaseMint: setupAccounts.purchaseMint,
-      drawDuration: 10,
+      drawDuration: 3,
       ticketPrice: 1,
       prizeAmount: 1,
       collectionMetadataSymbol: "LOTTO",
@@ -48,7 +49,7 @@ describe("solana-lottery-program", () => {
     const buyTicketTxSig = await client.buy(buyTicketParams);
     console.log("buyTicketTxSig: %s", buyTicketTxSig);
 
-    // sleep and let the draw duration expire
+    // sleep to let the draw duration expire
     await sleepMs(3000);
 
     const drawParams: sdk.DrawParams = {
