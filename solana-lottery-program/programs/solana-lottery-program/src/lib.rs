@@ -352,7 +352,7 @@ pub mod solana_lottery_program {
     // draw must be called by the admin of the lottery as the admin has permissions to request the randomness
     pub fn draw(ctx: Context<Draw>, params: DrawParams) -> Result<()> {
         // if lottery is already complete, don't allow more draws
-        if ctx.accounts.lottery_manager.complete == true {
+        if ctx.accounts.lottery_manager.complete {
             return Err(SLPErrorCode::LotteryComplete.into());
         }
 
@@ -474,7 +474,7 @@ pub mod solana_lottery_program {
     // dispense prize to winner
     pub fn dispense(ctx: Context<Dispense>, params: DispenseParams) -> Result<()> {
         // if lottery is already complete, don't allow more dispense calls
-        if ctx.accounts.lottery_manager.complete == true {
+        if ctx.accounts.lottery_manager.complete {
             return Err(SLPErrorCode::LotteryComplete.into());
         }
 
@@ -767,7 +767,12 @@ pub struct Buy<'info> {
     #[account(mut, seeds = [b"purchase_vault", params.lottery_name.as_bytes()], bump)]
     pub purchase_vault: AccountInfo<'info>,
 
-    #[account(mut, seeds = [b"lottery_manager", params.lottery_name.as_bytes()], bump)]
+    #[account(
+        has_one = purchase_vault,
+        has_one = collection_mint,
+        has_one = collection_metadata,
+        has_one = collection_master_edition,
+        mut, seeds = [b"lottery_manager", params.lottery_name.as_bytes()], bump)]
     pub lottery_manager: Box<Account<'info, LotteryManager>>,
 
     #[account(mut)]
@@ -846,7 +851,17 @@ pub struct Draw<'info> {
     #[account(mut, seeds = [b"purchase_vault", params.lottery_name.as_bytes()], bump)]
     pub purchase_vault: AccountInfo<'info>,
 
-    #[account(mut)]
+    #[account(mut,
+        has_one = purchase_vault,
+        has_one = vrf_state,
+        has_one = vrf,
+        has_one = vrf_oracle_queue,
+        has_one = vrf_queue_authority,
+        has_one = vrf_data_buffer,
+        has_one = vrf_permission,
+        has_one = vrf_escrow,
+        has_one = vrf_program_state,
+    )]
     pub lottery_manager: Box<Account<'info, LotteryManager>>,
 
     #[account(
@@ -938,13 +953,19 @@ pub struct Dispense<'info> {
     #[account(mut, token::mint = prize_mint, token::authority = lottery_manager, seeds = [b"prize_vault", params.lottery_name.as_bytes()], bump)]
     pub prize_vault: Box<Account<'info, token::TokenAccount>>,
 
-    #[account(mut, seeds = [b"lottery_manager", params.lottery_name.as_bytes()], bump)]
+    #[account(mut,
+        has_one = prize_mint,
+        has_one = prize_vault,
+        seeds = [b"lottery_manager", params.lottery_name.as_bytes()], bump)]
     pub lottery_manager: Box<Account<'info, LotteryManager>>,
 
     #[account()]
     pub ticket_mint: Box<Account<'info, token::Mint>>,
 
-    #[account(has_one = ticket_mint, seeds = [b"ticket", lottery_manager.key().as_ref(), ticket_mint.key().as_ref()], bump)]
+    #[account(
+        has_one = ticket_mint,
+        has_one = lottery_manager,
+        seeds = [b"ticket", lottery_manager.key().as_ref(), ticket_mint.key().as_ref()], bump)]
     pub ticket: Box<Account<'info, Ticket>>,
 
     /// CHECK: todo

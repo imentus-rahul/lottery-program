@@ -61,7 +61,7 @@ export const HomeView: FC = ({}) => {
         </h1>
         <div className="md:w-full text-center">
           <h1>
-            {lotteryManager && (
+            {lotteryManager && lotteryManager && (
               <DrawCountdown
                 complete={lotteryManager.complete}
                 cutoffTime={lotteryManager.cutoffTime.toNumber()}
@@ -86,7 +86,7 @@ export const HomeView: FC = ({}) => {
           )}
         </div>
         <div className="text-center">
-          {lotteryClient && (
+          {lotteryClient && lotteryManager && (
             <BuyTicket
               complete={lotteryManager.complete}
               lotteryClient={lotteryClient}
@@ -95,7 +95,7 @@ export const HomeView: FC = ({}) => {
           )}
         </div>
         <div className="text-center">
-          {lotteryClient && (
+          {lotteryClient && lotteryManager && (
             <DispenseResult complete={lotteryManager.complete} />
           )}
         </div>
