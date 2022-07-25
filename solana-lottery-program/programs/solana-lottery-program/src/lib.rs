@@ -13,6 +13,8 @@ declare_id!("5AQqMzcMdRcdvGydG6UGrsL4164VwZHuHiHcHYFWhg7");
 #[program]
 pub mod solana_lottery_program {
 
+    use anchor_lang::solana_program::system_instruction;
+
     use super::*;
 
     pub fn init_lottery(ctx: Context<InitLottery>, params: InitLotteryParams) -> Result<()> {
@@ -158,12 +160,11 @@ pub mod solana_lottery_program {
 
         // set vault manager config
         let lottery_manager = &mut ctx.accounts.lottery_manager;
+        lottery_manager.lottery_name = params.lottery_name;
         lottery_manager.prize_mint = ctx.accounts.prize_mint.key();
         lottery_manager.prize_vault = ctx.accounts.prize_vault.key();
         lottery_manager.draw_duration = params.draw_duration;
-        lottery_manager.cutoff_time = 0;
         lottery_manager.ticket_price = params.ticket_price;
-        lottery_manager.purchase_mint = ctx.accounts.purchase_mint.key();
         lottery_manager.purchase_vault = ctx.accounts.purchase_vault.key();
         lottery_manager.collection_mint = ctx.accounts.collection_mint.key();
         lottery_manager.collection_metadata = ctx.accounts.collection_metadata.key();
@@ -186,6 +187,8 @@ pub mod solana_lottery_program {
         lottery_manager.vrf_state_bump = state.bump;
         lottery_manager.vrf_permission_bump = params.vrf_permission_bump;
         lottery_manager.vrf_sb_state_bump = params.vrf_sb_state_bump;
+        lottery_manager.complete = false;
+        lottery_manager.cutoff_time = 0;
 
         Ok(())
     }
@@ -193,18 +196,20 @@ pub mod solana_lottery_program {
     pub fn buy(ctx: Context<Buy>, params: BuyParams) -> Result<()> {
         let lottery_manager = &mut ctx.accounts.lottery_manager;
 
+        if lottery_manager.cutoff_time == 0 {
+            // begin draw countdown
+            let now = get_current_time();
+            lottery_manager.cutoff_time = now as u64 + lottery_manager.draw_duration;
+        }
+
+        // if lottery is already complete, don't allow any more ticket purchases
+        if lottery_manager.complete == true {
+            return Err(SLPErrorCode::LotteryComplete.into());
+        }
+
         // if at or above max amount of tickets purchased dont allow any more purchases
         if lottery_manager.circulating_ticket_supply >= lottery_manager.max_tickets {
             return Err(SLPErrorCode::MaxTicketsPurchased.into());
-        };
-
-        // if cutoff_time is 0, drawing has never started
-        if lottery_manager.cutoff_time == 0 {
-            // get current timestamp from Clock program
-            let now = get_current_time();
-
-            // set last draw time to now
-            lottery_manager.cutoff_time = now as u64 + lottery_manager.draw_duration;
         };
 
         // if buy is locked do not sell tickets
@@ -221,26 +226,18 @@ pub mod solana_lottery_program {
         // increase supply by 1
         lottery_manager.circulating_ticket_supply += 1;
 
-        // transfer tokens from user wallet to vault
-        let transfer_accounts = token::Transfer {
-            from: ctx.accounts.user_purchase_ata.to_account_info(),
-            to: ctx.accounts.purchase_vault.to_account_info(),
-            authority: ctx.accounts.user.to_account_info(),
-        };
-
-        token::transfer(
-            CpiContext::new(
-                ctx.accounts.token_program.to_account_info(),
-                transfer_accounts,
-            ),
-            ctx.accounts.lottery_manager.ticket_price,
-        )?;
+        // transfer sends lamports so convert to SOL price before sending
+        system_instruction::transfer(
+            &ctx.accounts.user.key(),
+            &ctx.accounts.purchase_vault.key(),
+            lottery_manager.ticket_price * 1000000000,
+        );
 
         // mint NFT to user ATA, make sure its part of the collection
         let mint_to_accounts = token::MintTo {
             mint: ctx.accounts.ticket_mint.to_account_info(),
             to: ctx.accounts.user_ticket_ata.to_account_info(),
-            authority: ctx.accounts.lottery_manager.to_account_info(),
+            authority: lottery_manager.to_account_info(),
         };
 
         // mint master edition token to user nft ata
@@ -259,9 +256,9 @@ pub mod solana_lottery_program {
 
         // metadata params
         let data = DataV2 {
-            name: ctx.accounts.lottery_manager.ticket_metadata_name.clone(),
-            symbol: ctx.accounts.lottery_manager.ticket_metadata_symbol.clone(),
-            uri: ctx.accounts.lottery_manager.ticket_metadata_uri.clone(),
+            name: lottery_manager.ticket_metadata_name.clone(),
+            symbol: lottery_manager.ticket_metadata_symbol.clone(),
+            uri: lottery_manager.ticket_metadata_uri.clone(),
             seller_fee_basis_points: 0,
             creators: None,
             collection: Some(Collection {
@@ -274,9 +271,9 @@ pub mod solana_lottery_program {
         let create_metadata_accounts = [
             ctx.accounts.ticket_metadata.clone().to_account_info(),
             ctx.accounts.ticket_mint.clone().to_account_info(),
-            ctx.accounts.lottery_manager.clone().to_account_info(),
+            lottery_manager.clone().to_account_info(),
             ctx.accounts.user.clone().to_account_info(),
-            ctx.accounts.lottery_manager.clone().to_account_info(),
+            lottery_manager.clone().to_account_info(),
             ctx.accounts.system_program.clone().to_account_info(),
             ctx.accounts.rent.clone().to_account_info(),
         ];
@@ -286,9 +283,9 @@ pub mod solana_lottery_program {
             ctx.accounts.metadata_program.key(),
             ctx.accounts.ticket_metadata.key(),
             ctx.accounts.ticket_mint.to_account_info().key(),
-            ctx.accounts.lottery_manager.key(),
+            lottery_manager.key(),
             ctx.accounts.user.key(),
-            ctx.accounts.lottery_manager.key(),
+            lottery_manager.key(),
             data.name,
             data.symbol,
             data.uri,
@@ -314,9 +311,9 @@ pub mod solana_lottery_program {
             ctx.accounts.ticket_master_edition.clone(),
             ctx.accounts.ticket_metadata.clone(),
             ctx.accounts.ticket_mint.clone().to_account_info(),
-            ctx.accounts.lottery_manager.clone().to_account_info(),
+            lottery_manager.clone().to_account_info(),
             ctx.accounts.user.clone().to_account_info(),
-            ctx.accounts.lottery_manager.clone().to_account_info(),
+            lottery_manager.clone().to_account_info(),
             ctx.accounts.rent.to_account_info(),
             ctx.accounts.token_program.clone().to_account_info(),
         ];
@@ -326,8 +323,8 @@ pub mod solana_lottery_program {
             ctx.accounts.metadata_program.clone().key(),
             ctx.accounts.ticket_master_edition.clone().key(),
             ctx.accounts.ticket_mint.clone().key(),
-            ctx.accounts.lottery_manager.clone().key(),
-            ctx.accounts.lottery_manager.clone().key(),
+            lottery_manager.clone().key(),
+            lottery_manager.clone().key(),
             ctx.accounts.ticket_metadata.clone().key(),
             ctx.accounts.user.clone().key(),
             Some(0),
@@ -343,16 +340,24 @@ pub mod solana_lottery_program {
             ]],
         )?;
 
+        emit!(BuySuccessful {
+            lottery_manager: lottery_manager.clone().key(),
+            circulating_ticket_supply: lottery_manager.circulating_ticket_supply,
+        });
+
         Ok(())
     }
 
     // draw sends a randomness request to the switchboard oracle
     // draw must be called by the admin of the lottery as the admin has permissions to request the randomness
     pub fn draw(ctx: Context<Draw>, params: DrawParams) -> Result<()> {
-        let cutoff_time = ctx.accounts.lottery_manager.cutoff_time;
+        // if lottery is already complete, don't allow more draws
+        if ctx.accounts.lottery_manager.complete == true {
+            return Err(SLPErrorCode::LotteryComplete.into());
+        }
 
         // if no tickets have been purchased, do not draw
-        if cutoff_time == 0 {
+        if ctx.accounts.lottery_manager.circulating_ticket_supply == 0 {
             return Err(SLPErrorCode::NoTicketsPurchased.into());
         }
 
@@ -364,7 +369,7 @@ pub mod solana_lottery_program {
         // if time remaining then error
         // TODO: instead should be counting by slots?
         let now = get_current_time();
-        if now < cutoff_time {
+        if now < ctx.accounts.lottery_manager.cutoff_time {
             return Err(SLPErrorCode::TimeRemaining.into());
         }
 
@@ -459,6 +464,7 @@ pub mod solana_lottery_program {
 
         // emit event that we have new winning numbers
         emit!(DrawResultSuccessful {
+            lottery_manager: ctx.accounts.lottery_manager.clone().key(),
             winning_pick: winning_pick,
         });
 
@@ -467,6 +473,11 @@ pub mod solana_lottery_program {
 
     // dispense prize to winner
     pub fn dispense(ctx: Context<Dispense>, params: DispenseParams) -> Result<()> {
+        // if lottery is already complete, don't allow more dispense calls
+        if ctx.accounts.lottery_manager.complete == true {
+            return Err(SLPErrorCode::LotteryComplete.into());
+        }
+
         // if winning_pick doesnt exist, exit with an error
         let winning_pick = match ctx.accounts.lottery_manager.winning_pick {
             Some(winning_pick) => winning_pick,
@@ -486,8 +497,16 @@ pub mod solana_lottery_program {
 
         // if pick is higher or equal to the circulating ticket supply that means a winner was not drawn
         if ctx.accounts.lottery_manager.circulating_ticket_supply <= winning_pick {
+            emit!(DispenseResult {
+                lottery_manager: ctx.accounts.lottery_manager.clone().key(),
+                winner: None,
+            });
+
             return Ok(());
         }
+
+        // mark lottery as completed
+        ctx.accounts.lottery_manager.complete = true;
 
         // check the ticket passed in contains the winning pick
         if ctx.accounts.ticket.pick != winning_pick {
@@ -525,21 +544,24 @@ pub mod solana_lottery_program {
                 ]],
             ),
             ctx.accounts.prize_vault.amount,
-        )
+        )?;
+
+        emit!(DispenseResult {
+            lottery_manager: ctx.accounts.lottery_manager.clone().key(),
+            winner: Some(ctx.accounts.winner_prize_ata.clone().owner),
+        });
+
+        Ok(())
     }
 }
 
 #[derive(Accounts)]
 #[instruction(params: InitLotteryParams)]
 pub struct InitLottery<'info> {
-    pub purchase_mint: Box<Account<'info, token::Mint>>,
-
-    #[account(init,
-        payer = admin,
-        token::mint = purchase_mint,
-        token::authority = lottery_manager,
-        seeds = [b"purchase_vault", params.lottery_name.as_bytes()], bump)]
-    pub purchase_vault: Box<Account<'info, token::TokenAccount>>,
+    /// CHECK: can be any account, only compatible with native SOL
+    // TODO: what space should be used?
+    #[account(init, payer = admin, space = 100, seeds = [b"purchase_vault", params.lottery_name.as_bytes()], bump)]
+    pub purchase_vault: AccountInfo<'info>,
 
     pub prize_mint: Box<Account<'info, token::Mint>>,
 
@@ -630,7 +652,6 @@ pub struct InitLottery<'info> {
 #[derive(Default)]
 pub struct LotteryManager {
     pub lottery_name: String,
-    pub purchase_mint: Pubkey,
     pub purchase_vault: Pubkey,
     pub prize_mint: Pubkey,
     pub prize_vault: Pubkey,
@@ -648,6 +669,7 @@ pub struct LotteryManager {
     pub ticket_metadata_name: String,
     pub ticket_metadata_symbol: String,
     pub ticket_metadata_uri: String,
+    pub complete: bool,
     pub vrf: Pubkey,
     pub vrf_state: Pubkey,
     pub vrf_permission: Pubkey,
@@ -672,7 +694,6 @@ impl LotteryManager {
         + 32
         + 32
         + 32
-        + 32
         + 8
         + 8
         + 8
@@ -683,7 +704,8 @@ impl LotteryManager {
         + 1
         + 50
         + 50
-        + 50
+        + 100
+        + 1
         + 32
         + 32
         + 32
@@ -741,11 +763,9 @@ impl Default for VrfClient {
 #[derive(Accounts)]
 #[instruction(params: BuyParams)]
 pub struct Buy<'info> {
-    #[account(mut)]
-    pub purchase_mint: Box<Account<'info, token::Mint>>,
-
-    #[account(mut, token::mint = purchase_mint, token::authority = lottery_manager, seeds = [b"purchase_vault", params.lottery_name.as_bytes()], bump)]
-    pub purchase_vault: Box<Account<'info, token::TokenAccount>>,
+    /// CHECK: can be any account, only compatible with native SOL
+    #[account(mut, seeds = [b"purchase_vault", params.lottery_name.as_bytes()], bump)]
+    pub purchase_vault: AccountInfo<'info>,
 
     #[account(mut, seeds = [b"lottery_manager", params.lottery_name.as_bytes()], bump)]
     pub lottery_manager: Box<Account<'info, LotteryManager>>,
@@ -789,9 +809,6 @@ pub struct Buy<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
 
-    #[account(mut)]
-    pub user_purchase_ata: Account<'info, token::TokenAccount>,
-
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, token::Token>,
     pub associated_token_program: Program<'info, associated_token::AssociatedToken>,
@@ -802,6 +819,12 @@ pub struct Buy<'info> {
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct BuyParams {
     pub lottery_name: String,
+}
+
+#[event]
+pub struct BuySuccessful {
+    pub lottery_manager: Pubkey,
+    pub circulating_ticket_supply: u64,
 }
 
 #[account]
@@ -819,10 +842,9 @@ impl Ticket {
 #[derive(Accounts)]
 #[instruction(params: DrawParams)]
 pub struct Draw<'info> {
-    pub purchase_mint: Box<Account<'info, token::Mint>>,
-
-    #[account(mut, token::mint = purchase_mint, token::authority = lottery_manager, seeds = [b"purchase_vault", params.lottery_name.as_bytes()], bump)]
-    pub purchase_vault: Box<Account<'info, token::TokenAccount>>,
+    /// CHECK: can be any account, only compatible with native SOL
+    #[account(mut, seeds = [b"purchase_vault", params.lottery_name.as_bytes()], bump)]
+    pub purchase_vault: AccountInfo<'info>,
 
     #[account(mut)]
     pub lottery_manager: Box<Account<'info, LotteryManager>>,
@@ -904,6 +926,7 @@ pub struct DrawResult<'info> {
 
 #[event]
 pub struct DrawResultSuccessful {
+    pub lottery_manager: Pubkey,
     pub winning_pick: u64,
 }
 
@@ -924,10 +947,13 @@ pub struct Dispense<'info> {
     #[account(has_one = ticket_mint, seeds = [b"ticket", lottery_manager.key().as_ref(), ticket_mint.key().as_ref()], bump)]
     pub ticket: Box<Account<'info, Ticket>>,
 
-    #[account()]
+    /// CHECK: todo
+    pub winner: AccountInfo<'info>,
+
+    #[account(associated_token::mint = ticket_mint, associated_token::authority = winner)]
     pub winner_ticket_ata: Box<Account<'info, token::TokenAccount>>,
 
-    #[account(mut)]
+    #[account(init_if_needed, payer = user, associated_token::mint = prize_mint, associated_token::authority = winner)]
     pub winner_prize_ata: Account<'info, token::TokenAccount>,
 
     #[account(mut)]
@@ -943,6 +969,12 @@ pub struct Dispense<'info> {
 #[derive(AnchorSerialize, AnchorDeserialize)]
 pub struct DispenseParams {
     pub lottery_name: String,
+}
+
+#[event]
+pub struct DispenseResult {
+    pub lottery_manager: Pubkey,
+    pub winner: Option<Pubkey>,
 }
 
 #[derive(Clone)]
@@ -1016,6 +1048,9 @@ pub enum SLPErrorCode {
 
     #[msg("Max Tickets Purchased")]
     MaxTicketsPurchased,
+
+    #[msg("Lottery already complete")]
+    LotteryComplete,
 }
 
 // retrieve current unix timestamp converted to milliseconds

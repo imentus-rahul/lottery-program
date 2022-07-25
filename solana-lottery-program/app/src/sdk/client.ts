@@ -1,5 +1,5 @@
 import * as anchor from "@project-serum/anchor";
-import * as splToken from "../node_modules/@solana/spl-token";
+import * as splToken from "../../node_modules/@solana/spl-token";
 import * as mplMd from "@metaplex-foundation/mpl-token-metadata";
 import * as sb from "@switchboard-xyz/switchboard-v2";
 import * as sbUtils from "@switchboard-xyz/sbv2-utils";

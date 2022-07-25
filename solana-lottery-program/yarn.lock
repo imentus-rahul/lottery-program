@@ -88,14 +88,14 @@
     google-gax "^2.30.0"
 
 "@grpc/grpc-js@~1.6.0":
-  version "1.6.7"
-  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.6.7.tgz#4c4fa998ff719fe859ac19fe977fdef097bb99aa"
-  integrity sha512-eBM03pu9hd3VqDQG+kHahiG1x80RGkkqqRb1Pchcwqej/KkAH95gAvKs6laqaHCycYaPK+TKuNQnOz9UXYA8qw==
+  version "1.6.8"
+  resolved "https://registry.yarnpkg.com/@grpc/grpc-js/-/grpc-js-1.6.8.tgz#77cc8b2d841c34dea8b105d45ff1732caefae4f2"
+  integrity sha512-Nt5tufF/O5Q310kP0cDzxznWMZW58GCTZhUUiAQ9B0K0ANKNQ4Lj/K9XK0vZg+UBKq5/7z7+8mXHHfrcwoeFJQ==
   dependencies:
-    "@grpc/proto-loader" "^0.6.4"
+    "@grpc/proto-loader" "^0.7.0"
     "@types/node" ">=12.12.47"
 
-"@grpc/proto-loader@^0.6.12", "@grpc/proto-loader@^0.6.4":
+"@grpc/proto-loader@^0.6.12":
   version "0.6.13"
   resolved "https://registry.yarnpkg.com/@grpc/proto-loader/-/proto-loader-0.6.13.tgz#008f989b72a40c60c96cd4088522f09b05ac66bc"
   integrity sha512-FjxPYDRTn6Ec3V0arm1FtSpmP6V50wuph2yILpyvTKzjc76oDdoihXqM1DzOW5ubvCC8GivfCnNtfaRE8myJ7g==
@@ -104,6 +104,17 @@
     lodash.camelcase "^4.3.0"
     long "^4.0.0"
     protobufjs "^6.11.3"
+    yargs "^16.2.0"
+
+"@grpc/proto-loader@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@grpc/proto-loader/-/proto-loader-0.7.0.tgz#743cc8a941cc251620c66ebe0d330e1411a33535"
+  integrity sha512-SGPZtVmqOvNfPFOA/nNPn+0Weqa5wubBgQ56+JgTbeLY2VezwtMjwPPFzh0kvQccwWT3a2TXT0ZGK/pJoOTk1A==
+  dependencies:
+    "@types/long" "^4.0.1"
+    lodash.camelcase "^4.3.0"
+    long "^4.0.0"
+    protobufjs "^7.0.0"
     yargs "^16.2.0"
 
 "@hapi/hoek@^9.0.0":
@@ -202,9 +213,9 @@
     tslib "^2"
 
 "@oclif/core@^1", "@oclif/core@^1.0.8", "@oclif/core@^1.1.1", "@oclif/core@^1.2.0", "@oclif/core@^1.3.0", "@oclif/core@^1.3.6":
-  version "1.11.0"
-  resolved "https://registry.yarnpkg.com/@oclif/core/-/core-1.11.0.tgz#ab437c9a40cea46f5f74c6248f0eea9030b3ac89"
-  integrity sha512-snTdQBd0e3YcG1bVgZiuEajBpsbJ2kP/7FBoMLjTBge7Dbk7jlv31ql/igDdoISoUVmbSy+hEzTaLLIGiLWieQ==
+  version "1.12.1"
+  resolved "https://registry.yarnpkg.com/@oclif/core/-/core-1.12.1.tgz#685bf58026fc3bfa6fc45afa4dbc9bdababf680f"
+  integrity sha512-9ZPh9MLirv2CbOHMybPw3Fczr56OAVi8UQZXTBM4AYmtuL3nHsovV5lvsNPvtAqa+IQuJQb//ERpKTThwJY6WA==
   dependencies:
     "@oclif/linewrap" "^1.0.0"
     "@oclif/screen" "^3.0.2"
@@ -594,9 +605,9 @@
     ws "^7.0.0"
 
 "@solana/web3.js@^1.20.0", "@solana/web3.js@^1.21.0", "@solana/web3.js@^1.22.0", "@solana/web3.js@^1.24.1", "@solana/web3.js@^1.32.0", "@solana/web3.js@^1.35.1", "@solana/web3.js@^1.36.0", "@solana/web3.js@^1.42.0", "@solana/web3.js@^1.43.5", "@solana/web3.js@^1.44.0", "@solana/web3.js@^1.44.3":
-  version "1.48.0"
-  resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.48.0.tgz#331281b2d80640431fb3b6fdc6b704ec325917aa"
-  integrity sha512-Gb6XvdhGjGI7CdAXLmlMIEvEYvrwqc78JOtwCsSrTqzz7Ek/BhJpZ/Cv89gxRDrWxf6kHegAfaN2FxwuYMmDZQ==
+  version "1.50.0"
+  resolved "https://registry.yarnpkg.com/@solana/web3.js/-/web3.js-1.50.0.tgz#afc01b0fdeb86b571eefd243567a7dc9a281f236"
+  integrity sha512-9KCuF3QLHd/dkYlffYPSHPbPFaBKqiwwDqWR+C/z1CZZbQybu+NCydWvwHHqrrlG50wn15L/6zYLb5Tjr6tOkA==
   dependencies:
     "@babel/runtime" "^7.12.5"
     "@ethersproject/sha2" "^5.5.0"
@@ -616,17 +627,17 @@
     superstruct "^0.14.2"
     tweetnacl "^1.0.0"
 
-"@switchboard-xyz/sbv2-utils@^0.1.34":
-  version "0.1.34"
-  resolved "https://registry.yarnpkg.com/@switchboard-xyz/sbv2-utils/-/sbv2-utils-0.1.34.tgz#9bc6630f66ada960ed930230c171d2029767a479"
-  integrity sha512-cmuNMXZKNZaQ0MsxcIIKZEG1yclxHZg/dwhAjkGPXdZJXmjVM63OHXtq7WfKDqo+lA9lCh3V7AnRelGeePyvTw==
+"@switchboard-xyz/sbv2-utils@^0.1.34", "@switchboard-xyz/sbv2-utils@^0.1.35":
+  version "0.1.35"
+  resolved "https://registry.yarnpkg.com/@switchboard-xyz/sbv2-utils/-/sbv2-utils-0.1.35.tgz#9a7b9840c646cc04fd6b85b5899ce3195ee2f2db"
+  integrity sha512-OtJN/7xb/mrvQz+iOCSLGhSlh4Ki2hE7ImU6/16twFyqfGS9ASyNzmOvbFecHdzESbdAQZvPKUuHqDDi9wj3xw==
   dependencies:
     "@orca-so/sdk" "^1.2.24"
     "@project-serum/anchor" "^0.24.2"
     "@saberhq/token-utils" "^1.13.32"
     "@solana/spl-token" "^0.2.0"
     "@solana/web3.js" "^1.43.5"
-    "@switchboard-xyz/switchboard-v2" "^0.0.122"
+    "@switchboard-xyz/switchboard-v2" "^0.0.123"
     big.js "^6.1.1"
     bn.js "^5.2.1"
     chalk "4"
@@ -655,10 +666,31 @@
     node-fetch "^3.2.6"
     protobufjs "^6.11.3"
 
+"@switchboard-xyz/switchboard-v2@^0.0.123":
+  version "0.0.123"
+  resolved "https://registry.yarnpkg.com/@switchboard-xyz/switchboard-v2/-/switchboard-v2-0.0.123.tgz#4331ed11d80008ac56a9945f3e61971019791da6"
+  integrity sha512-XfXBknOfLfVUsSggZL1mHU0LYjWHhZvtK1AXtzjzHrb+Fjb+Bs8ciWe2gS21+I70HyAyuO+vwIzHcHhd5ckxwQ==
+  dependencies:
+    "@project-serum/anchor" "^0.24.2"
+    "@solana/spl-governance" "^0.0.34"
+    "@solana/spl-token" "^0.2.0"
+    "@solana/web3.js" "^1.44.3"
+    "@types/big.js" "^6.1.4"
+    assert "^2.0.0"
+    big.js "^6.2.0"
+    bs58 "^4.0.1"
+    chan "^0.6.1"
+    crypto-js "^4.0.0"
+    glob "^8.0.3"
+    long "^4.0.0"
+    mocha "^9.1.1"
+    node-fetch "^3.2.6"
+    protobufjs "^6.11.3"
+
 "@switchboard-xyz/switchboardv2-cli@^0.2.16":
-  version "0.2.16"
-  resolved "https://registry.yarnpkg.com/@switchboard-xyz/switchboardv2-cli/-/switchboardv2-cli-0.2.16.tgz#e5bd3198a691a796e7360ad0d11ed2a099479f7f"
-  integrity sha512-enU1TlfwJbkUUfVRvnqZQp3QJizgCdxUEu4UtufIrnpsCQNtXhLSunC9oaM5e6RWZPsBvS+AniKdH/6D1l3HWg==
+  version "0.2.17"
+  resolved "https://registry.yarnpkg.com/@switchboard-xyz/switchboardv2-cli/-/switchboardv2-cli-0.2.17.tgz#fec928ec31fcfd703986a4876ff0fc7e598005aa"
+  integrity sha512-0Fo7yDhJnoXXdaNbH7BxIdjZbLkssu8l6YylOt7AkOXVxJN+FulxypMltTQ89j5mlg5iupi5Q4wS0Jy1J36BCw==
   dependencies:
     "@google-cloud/secret-manager" "^3.10.1"
     "@oclif/core" "^1"
@@ -671,8 +703,8 @@
     "@project-serum/anchor" "^0.24.2"
     "@solana/spl-token" "^0.2.0"
     "@solana/web3.js" "^1.43.5"
-    "@switchboard-xyz/sbv2-utils" "^0.1.34"
-    "@switchboard-xyz/switchboard-v2" "^0.0.122"
+    "@switchboard-xyz/sbv2-utils" "^0.1.35"
+    "@switchboard-xyz/switchboard-v2" "^0.0.123"
     assert "^2.0.0"
     big.js "^6.2.0"
     bs58 "^5.0.0"
@@ -2276,9 +2308,9 @@ glob@^8.0.3:
     once "^1.3.0"
 
 globals@^13.6.0, globals@^13.9.0:
-  version "13.16.0"
-  resolved "https://registry.yarnpkg.com/globals/-/globals-13.16.0.tgz#9be4aca28f311aaeb974ea54978ebbb5e35ce46a"
-  integrity sha512-A1lrQfpNF+McdPOnnFqY3kSN0AFTy485bTi1bkLk4mVPODIUEcSfhHgRqA+QdXPksrSTTztYXx37NFV+GpGk3Q==
+  version "13.17.0"
+  resolved "https://registry.yarnpkg.com/globals/-/globals-13.17.0.tgz#902eb1e680a41da93945adbdcb5a9f361ba69bd4"
+  integrity sha512-1C+6nQRb1GwGMKm2dH/E7enFAMxGTmGI7/dEdhy/DNelv85w9B72t3uc5frtMNXIbzrarJJ/lTCjcaZwbLJmyw==
   dependencies:
     type-fest "^0.20.2"
 
@@ -3093,6 +3125,11 @@ long@^4.0.0:
   resolved "https://registry.yarnpkg.com/long/-/long-4.0.0.tgz#9a7b71cfb7d361a194ea555241c92f7468d5bf28"
   integrity sha512-XsP+KhQif4bjX1kbuSiySJFNAehNxgLb6hPRGJ9QsUr8ajHkuXGdrHmFUTUUXhDwVX2R5bY4JNZEwbUiMhV+MA==
 
+long@^5.0.0:
+  version "5.2.0"
+  resolved "https://registry.yarnpkg.com/long/-/long-5.2.0.tgz#2696dadf4b4da2ce3f6f6b89186085d94d52fd61"
+  integrity sha512-9RTUNjK60eJbx3uz+TEGF7fUr29ZDxR5QzXcyDpeSfeH28S9ycINflOgOlppit5U+4kNTe83KQnMEerw7GmE8w==
+
 loupe@^2.3.1:
   version "2.3.4"
   resolved "https://registry.yarnpkg.com/loupe/-/loupe-2.3.4.tgz#7e0b9bffc76f148f9be769cb1321d3dcf3cb25f3"
@@ -3630,6 +3667,25 @@ protobufjs@6.11.3, protobufjs@^6.11.2, protobufjs@^6.11.3:
     "@types/long" "^4.0.1"
     "@types/node" ">=13.7.0"
     long "^4.0.0"
+
+protobufjs@^7.0.0:
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/protobufjs/-/protobufjs-7.0.0.tgz#8c678e1351fd926178fce5a4213913e8d990974f"
+  integrity sha512-ffNIEm+quOcYtQvHdW406v1NQmZSuqVklxsXk076BtuFnlYZfigLU+JOMrTD8TUOyqHYbRI/fSVNvgd25YeN3w==
+  dependencies:
+    "@protobufjs/aspromise" "^1.1.2"
+    "@protobufjs/base64" "^1.1.2"
+    "@protobufjs/codegen" "^2.0.4"
+    "@protobufjs/eventemitter" "^1.1.0"
+    "@protobufjs/fetch" "^1.1.0"
+    "@protobufjs/float" "^1.0.2"
+    "@protobufjs/inquire" "^1.1.0"
+    "@protobufjs/path" "^1.1.2"
+    "@protobufjs/pool" "^1.1.0"
+    "@protobufjs/utf8" "^1.1.0"
+    "@types/long" "^4.0.1"
+    "@types/node" ">=13.7.0"
+    long "^5.0.0"
 
 ps-tree@1.2.0:
   version "1.2.0"

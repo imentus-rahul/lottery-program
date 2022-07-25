@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mkdir -p .anchor/test-ledger
+rm -rf .anchor/*
 
 solana-test-validator -r --ledger .anchor/test-ledger --mint D5B1iguWRmkrjiNU6zSt1LxwDocFRyzfab38y4JXwed --bind-address 0.0.0.0 --url https://devnet.genesysgo.net --rpc-port 8899 --deactivate-feature 4d5AKtxoh93Dwm1vHXUU3iRATuMndx1c431KgT2td52r --clone 2TfB33aLaneQb5TNVwyDz3jSZXS6jdW2ARw1Dgf84XCG `# programId` \
 --clone J4CArpsbrZqu1axqQ4AnrqREs3jwoyA1M5LMiQQmAzB9 `# programDataAddress` \

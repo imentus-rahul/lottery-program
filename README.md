@@ -52,3 +52,7 @@ docker-compose down
 - lottery_manager constraints
 - comp budget exceeded troubleshooting
 - create vrf in same tx as init lottery?
+- enable defaults for metadata if user doesnt want it
+- present absolute date instead of draw duration seconds
+- sync native
+- add display name so lottery_name can always be unique and ugly

@@ -1,24 +1,30 @@
 import * as anchor from "@project-serum/anchor";
 import * as splToken from "../node_modules/@solana/spl-token";
+import * as mpl from "@metaplex-foundation/mpl-token-metadata";
 import * as sdk from "../sdk/client";
 
 describe("solana-lottery-program", () => {
+  const opts: anchor.web3.ConfirmOptions = {
+    skipPreflight: false,
+    commitment: "confirmed",
+    preflightCommitment: "confirmed",
+    maxRetries: 10,
+  }
   // Configure the client to use the local cluster.
-  const provider = anchor.AnchorProvider.env();
+  const provider = anchor.AnchorProvider.local(undefined, opts)
 
   it("smoke test1", async () => {
     // setup
     const setupAccounts = await setupTest(
-      provider.connection.rpcEndpoint,
-      100,
-      1
+      provider.connection,
+      1,
+      provider.wallet.publicKey,
     );
     console.log("setup complete");
 
     // lottery client
     const client = new sdk.Client(
-      provider.connection.rpcEndpoint,
-      setupAccounts.payer
+      provider
     );
 
     const lotteryName = Math.random().toString(36).slice(2, 10);
@@ -26,8 +32,7 @@ describe("solana-lottery-program", () => {
     const initLotteryParams: sdk.InitLotteryParams = {
       lotteryName: lotteryName,
       prizeMint: setupAccounts.prizeMint,
-      purchaseMint: setupAccounts.purchaseMint,
-      drawDuration: 3,
+      drawDuration: 2,
       ticketPrice: 1,
       prizeAmount: 1,
       collectionMetadataSymbol: "LOTTO",
@@ -60,7 +65,7 @@ describe("solana-lottery-program", () => {
     console.log("drawTxSig: %s", drawTxSig);
 
     console.log("waiting for winningPick event");
-    const winningPick = await client.waitForDrawResult();
+    const winningPick = await client.waitForDrawResult(lotteryName);
     console.log("winningPick: %d", winningPick);
 
     const dispenseParams: sdk.DispenseParams = {
@@ -74,33 +79,20 @@ describe("solana-lottery-program", () => {
 
 interface SetupAccounts {
   prizeMint: anchor.web3.PublicKey;
-  purchaseMint: anchor.web3.PublicKey;
   prizeAta: anchor.web3.PublicKey;
-  purchaseAta: anchor.web3.PublicKey;
-  payer: anchor.web3.Keypair;
 }
 
 // setup accounts needed to run tests
 async function setupTest(
-  rpcEndpoint: string,
-  purchaseMintToAmount: number,
-  prizeMintToAmount: number
+  connection: anchor.web3.Connection,
+  prizeMintToAmount: number,
+  admin: anchor.web3.PublicKey,
 ): Promise<SetupAccounts> {
-  const connection = new anchor.web3.Connection(rpcEndpoint, "confirmed");
 
   const payer = anchor.web3.Keypair.generate();
 
   // init payer
   await getLamports(connection, payer.publicKey);
-
-  // init both mints and make the payer the authority
-  const purchaseMint = await splToken.createMint(
-    connection,
-    payer,
-    payer.publicKey,
-    payer.publicKey,
-    6
-  );
 
   // mock prize
   const prizeMint = await splToken.createMint(
@@ -116,7 +108,7 @@ async function setupTest(
     connection,
     payer,
     prizeMint,
-    payer.publicKey
+    admin,
   );
   await splToken.mintTo(
     connection,
@@ -127,28 +119,72 @@ async function setupTest(
     prizeMintToAmount
   );
 
-  // create admin ATA and mint the prize so the admin can transfer to the lottery program on init
-  const purchaseAta = await splToken.getOrCreateAssociatedTokenAccount(
-    connection,
-    payer,
-    purchaseMint,
-    payer.publicKey
-  );
-  await splToken.mintTo(
-    connection,
-    payer,
-    purchaseMint,
-    purchaseAta.address,
-    payer.publicKey,
-    purchaseMintToAmount
-  );
+  // create metadata account for prize mint
+  const [metadata, _metadataBump] = await anchor.web3.PublicKey.findProgramAddress(
+    [
+        Buffer.from('metadata'),
+        mpl.PROGRAM_ID.toBuffer(),
+        prizeMint.toBuffer(),
+    ], mpl.PROGRAM_ID)
+
+  const mdAccounts: mpl.CreateMetadataAccountV2InstructionAccounts = {
+    metadata: metadata,
+    mint: prizeMint,
+    mintAuthority: payer.publicKey,
+    payer: payer.publicKey,
+    updateAuthority: payer.publicKey,
+  };
+  const mdData: mpl.DataV2 = {
+    name: "Lottery_Ticket",
+    symbol: "TICKET",
+    uri: "https://lottery-ticket1.s3.us-west-1.amazonaws.com/ticket.json",
+    sellerFeeBasisPoints: 0,
+    creators: null,
+    collection: null,
+    uses: null,
+  }
+  const mdArgs: mpl.CreateMetadataAccountArgsV2 = {
+    data: mdData,
+    isMutable: true,
+  }
+  const ixArgs: mpl.CreateMetadataAccountV2InstructionArgs = {
+    createMetadataAccountArgsV2: mdArgs
+  };
+  const metadataIx = mpl.createCreateMetadataAccountV2Instruction(mdAccounts, ixArgs);
+
+  // master edition
+  const [masterEdition, _masterEditionBump] = await anchor.web3.PublicKey.findProgramAddress(
+    [
+        Buffer.from('metadata'),
+        mpl.PROGRAM_ID.toBuffer(),
+        prizeMint.toBuffer(),
+        Buffer.from('edition'),
+    ], mpl.PROGRAM_ID)
+
+  const meAccounts: mpl.CreateMasterEditionV3InstructionAccounts = {
+    metadata: metadata,
+    edition: masterEdition,
+    mint: prizeMint,
+    updateAuthority: payer.publicKey,
+    mintAuthority: payer.publicKey,
+    payer: payer.publicKey,
+  };
+
+  const meArgs: mpl.CreateMasterEditionArgs = {
+    maxSupply: new anchor.BN(1),
+  };
+
+  const meIxArgs: mpl.CreateMasterEditionV3InstructionArgs = {
+    createMasterEditionArgs: meArgs, 
+  }
+  const masterEditionIx = mpl.createCreateMasterEditionV3Instruction(meAccounts, meIxArgs);
+
+  const createNftAccountsTxSig = await connection.sendTransaction(new anchor.web3.Transaction().add(metadataIx).add(masterEditionIx), [payer]);
+  console.log("createNftAccountsTxSig: %s", createNftAccountsTxSig);
 
   const setupAccounts: SetupAccounts = {
     prizeMint: prizeMint,
-    purchaseMint: purchaseMint,
     prizeAta: prizeAta.address,
-    purchaseAta: purchaseAta.address,
-    payer: payer,
   };
 
   return setupAccounts;
