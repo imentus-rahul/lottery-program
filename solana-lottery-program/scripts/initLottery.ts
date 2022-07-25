@@ -134,7 +134,7 @@ async function main() {
     lotteryName: lotteryName,
     prizeMint: prizeMint,
     drawDuration: 100,
-    ticketPrice: 0.1,
+    ticketPrice: 0.01,
     prizeAmount: 1,
     collectionMetadataSymbol: "LOTTO",
     collectionMetadataUri:

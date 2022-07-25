@@ -7,11 +7,14 @@ solana_lottery_program = "5AQqMzcMdRcdvGydG6UGrsL4164VwZHuHiHcHYFWhg7"
 [programs.devnet]
 solana_lottery_program = "5AQqMzcMdRcdvGydG6UGrsL4164VwZHuHiHcHYFWhg7"
 
+[programs.mainnet]
+solana_lottery_program = "5AQqMzcMdRcdvGydG6UGrsL4164VwZHuHiHcHYFWhg7"
+
 [registry]
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "devnet"
+cluster = "mainnet"
 wallet = "/Users/jack/.config/solana/id.json"
 
 # wait for validator to successfully clone all acounts from devnet

@@ -2,7 +2,7 @@ import { PublicKey } from "@solana/web3.js";
 import { FC, PropsWithChildren, useEffect, useState } from "react";
 import { Client } from "sdk/client";
 
-interface Props extends PropsWithChildren {
+interface Props {
   complete: boolean;
 }
 

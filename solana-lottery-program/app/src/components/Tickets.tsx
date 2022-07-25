@@ -1,6 +1,6 @@
-import { FC, PropsWithChildren } from "react";
+import { FC } from "react";
 
-interface Props extends PropsWithChildren {
+interface Props {
   ticketsMinted: number;
   maxTickets: number;
 }

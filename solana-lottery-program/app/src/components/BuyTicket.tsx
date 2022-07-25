@@ -4,7 +4,7 @@ import { Client } from "../sdk/client";
 import { notify } from "../utils/notifications";
 import { PublicKey } from "@solana/web3.js";
 
-interface Props extends PropsWithChildren {
+interface Props {
   lotteryName: string;
   lotteryClient: Client;
   complete: boolean;

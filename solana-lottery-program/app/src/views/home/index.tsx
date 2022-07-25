@@ -30,7 +30,8 @@ export const HomeView: FC = ({}) => {
     cluster: networkConfiguration as Cluster,
   });
 
-  const lotteryName = "NFT_RAFFLE";
+  const lotteryName = process.env.NEXT_PUBLIC_LOTTERY_NAME;
+  console.log("loading lottery: %s", lotteryName);
 
   if (!wallet) {
     console.log("wallet null Homeview");

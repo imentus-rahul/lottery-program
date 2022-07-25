@@ -2,7 +2,7 @@ import { PublicKey } from "@solana/web3.js";
 import { FC, useState, useEffect } from "react";
 import { Metaplex, Nft } from "@metaplex-foundation/js";
 
-interface Props extends PropsWithChildren {
+interface Props {
   prizeMint: string;
   metaplexClient: Metaplex;
 }

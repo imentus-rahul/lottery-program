@@ -3,7 +3,7 @@ import Countdown from "react-countdown";
 
 const DrawTime = () => <span>Time to pick a winner!</span>;
 
-interface Props extends PropsWithChildren {
+interface Props {
   cutoffTime: number;
   complete: boolean;
 }
