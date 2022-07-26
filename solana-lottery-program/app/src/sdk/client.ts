@@ -14,7 +14,7 @@ export class Client {
   constructor(provider: anchor.AnchorProvider) {
     const program = new anchor.Program(
       idl,
-      new anchor.web3.PublicKey("5AQqMzcMdRcdvGydG6UGrsL4164VwZHuHiHcHYFWhg7"),
+      new anchor.web3.PublicKey(idl.metadata.address),
       provider
     );
 
@@ -78,27 +78,8 @@ export class Client {
       );
     console.log("lottery & metaplex PDA's generated");
 
-    // switchboard VRF
-
-    let sbTestCtx: sbUtils.SwitchboardTestContext;
-
-    try {
-      // load devnet queue
-      sbTestCtx = await sbUtils.SwitchboardTestContext.loadDevnetQueue(
-        this.program.provider as anchor.AnchorProvider,
-        "F8ce7MsckeZAbAGmxjJNetxYXQa9mKr9nnrC3qKubyYy",
-        5_000_000
-      );
-      console.log("devnet switchboard test context loaded");
-    } catch (e) {
-      // load localnet queue from env file
-      sbTestCtx = await sbUtils.SwitchboardTestContext.loadFromEnv(
-        this.program.provider as anchor.AnchorProvider,
-        undefined,
-        5_000_000
-      );
-      console.log("local switchboard test context loaded");
-    }
+    // switchboard VRF Data
+    const sbData = await this.setupSwitchboardVRF(params.sbPayerKeypair);
 
     // keypair used for client and state seed
     const vrfStateKeypair = anchor.web3.Keypair.generate();
@@ -131,32 +112,32 @@ export class Client {
     };
 
     // create new VrfAccount
-    const vrf = await sb.VrfAccount.create(sbTestCtx.program, {
+    const vrf = await sb.VrfAccount.create(sbData.sbProgram, {
       keypair: vrfStateKeypair,
       authority: vrfState,
       callback: callback,
-      queue: sbTestCtx.queue,
+      queue: sbData.queue,
     });
 
     // load account data
-    const queue = await sbTestCtx.queue.loadData();
+    const queue = await sbData.queue.loadData();
     const vrfAccount = await vrf.loadData();
 
     const [programStateAccount, programStateBump] =
-      sb.ProgramStateAccount.fromSeed(sbTestCtx.program);
+      sb.ProgramStateAccount.fromSeed(sbData.sbProgram);
 
     // create the permission account
-    await sb.PermissionAccount.create(sbTestCtx.program, {
+    await sb.PermissionAccount.create(sbData.sbProgram, {
       authority: queue.authority,
-      granter: sbTestCtx.queue.publicKey,
+      granter: sbData.queue.publicKey,
       grantee: vrf.publicKey,
     });
 
     // derive the bump
     const [permission, permissionBump] = sb.PermissionAccount.fromSeed(
-      sbTestCtx.program,
+      sbData.sbProgram,
       queue.authority,
-      sbTestCtx.queue.publicKey,
+      sbData.queue.publicKey,
       vrf.publicKey
     );
 
@@ -204,8 +185,8 @@ export class Client {
         collectionMasterEdition: collectionMe,
         vrf: vrf.publicKey,
         vrfState: vrfState,
-        switchboardProgram: sbTestCtx.program.programId,
-        vrfOracleQueue: sbTestCtx.queue.publicKey,
+        switchboardProgram: sbData.sbProgram.programId,
+        vrfOracleQueue: sbData.queue.publicKey,
         vrfQueueAuthority: queue.authority,
         vrfDataBuffer: queue.dataBuffer,
         vrfPermission: permission.publicKey,
@@ -576,6 +557,77 @@ export class Client {
 
     return [ticketOwner, ticketAccount.ticketMint];
   }
+
+  // payer argument only necessary for mainnet
+  public async setupSwitchboardVRF(payer?: anchor.web3.Keypair): Promise<SwitchboardData> {
+    let queue: sb.OracleQueueAccount;
+    let queueAuthority: anchor.web3.PublicKey;
+    let dataBuffer: anchor.web3.PublicKey;
+    let sbProgram: any;
+
+    // check if mainnet exists
+    const mainnetExists = await this.provider.connection.getAccountInfo(
+      sb.SBV2_MAINNET_PID
+    );
+
+    if (mainnetExists) {
+      sbProgram = await sb.loadSwitchboardProgram(
+        "mainnet-beta",
+        this.provider.connection,
+        payer,
+        { commitment: "confirmed" }
+      );
+      queue = new sb.OracleQueueAccount({
+        program: sbProgram,
+        publicKey: new anchor.web3.PublicKey(
+          "5JYwqvKkqp35w8Nq3ba4z1WYUeJQ1rB36V8XvaGp6zn1"
+        ),
+      });
+      queueAuthority = new anchor.web3.PublicKey(
+        "31Sof5r1xi7dfcaz4x9Kuwm8J9ueAdDduMcme59sP8gc"
+      );
+      dataBuffer = new anchor.web3.PublicKey(
+        "FozqXFMS1nQKfPqwVdChr7RJ3y7ccSux39zU682kNYjJ"
+      );
+      console.log("mainnet vrf set");
+    } else {
+      // switchboard VRF
+      let sbTestCtx: sbUtils.SwitchboardTestContext;
+      try {
+        // load devnet queue
+        sbTestCtx = await sbUtils.SwitchboardTestContext.loadDevnetQueue(
+          this.program.provider as anchor.AnchorProvider,
+          "F8ce7MsckeZAbAGmxjJNetxYXQa9mKr9nnrC3qKubyYy",
+          5_000_000
+        );
+        console.log("devnet vrf set");
+      } catch (e) {
+        // load localnet queue from env file
+        sbTestCtx = await sbUtils.SwitchboardTestContext.loadFromEnv(
+          this.program.provider as anchor.AnchorProvider,
+          undefined,
+          5_000_000
+        );
+        console.log("local vrf set");
+      }
+
+      const queueData = await sbTestCtx.queue.loadData();
+
+      queue = sbTestCtx.queue;
+      queueAuthority = queueData.authority;
+      dataBuffer = queueData.dataBuffer;
+      sbProgram = sbTestCtx.program;
+    }
+
+    const accounts: SwitchboardData = {
+      queue: queue,
+      queueAuthority: queueAuthority,
+      dataBuffer: dataBuffer,
+      sbProgram: sbProgram,
+    };
+
+    return accounts;
+  }
 }
 
 export interface InitLotteryParams {
@@ -591,6 +643,7 @@ export interface InitLotteryParams {
   ticketMetadataUri: string;
   maxTickets: number;
   guaranteeWinner: boolean;
+  sbPayerKeypair: anchor.web3.Keypair;
 }
 
 export interface BuyParams {
@@ -603,4 +656,11 @@ export interface DrawParams {
 
 export interface DispenseParams {
   lotteryName: string;
+}
+
+export interface SwitchboardData {
+  sbProgram: any;
+  queue: sb.OracleQueueAccount;
+  queueAuthority: anchor.web3.PublicKey;
+  dataBuffer: anchor.web3.PublicKey;
 }

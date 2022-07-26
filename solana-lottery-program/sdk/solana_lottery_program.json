@@ -581,7 +581,10 @@
           {
             "name": "resultBuffer",
             "type": {
-              "array": ["u8", 32]
+              "array": [
+                "u8",
+                32
+              ]
             }
           },
           {
@@ -859,5 +862,8 @@
       "name": "InvalidAuthorityError",
       "msg": "Invalid authority account provided."
     }
-  ]
+  ],
+  "metadata": {
+    "address": "5xn6Hd4QsLUJTjbgzDZGmhzb9L476Q82AcDiKsPLPmJP"
+  }
 }

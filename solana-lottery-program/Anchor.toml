@@ -2,13 +2,13 @@
 seeds = false
 
 [programs.localnet]
-solana_lottery_program = "5AQqMzcMdRcdvGydG6UGrsL4164VwZHuHiHcHYFWhg7"
+solana_lottery_program = "5xn6Hd4QsLUJTjbgzDZGmhzb9L476Q82AcDiKsPLPmJP"
 
 [programs.devnet]
-solana_lottery_program = "5AQqMzcMdRcdvGydG6UGrsL4164VwZHuHiHcHYFWhg7"
+solana_lottery_program = "5xn6Hd4QsLUJTjbgzDZGmhzb9L476Q82AcDiKsPLPmJP"
 
 [programs.mainnet]
-solana_lottery_program = "5AQqMzcMdRcdvGydG6UGrsL4164VwZHuHiHcHYFWhg7"
+solana_lottery_program = "5xn6Hd4QsLUJTjbgzDZGmhzb9L476Q82AcDiKsPLPmJP"
 
 [registry]
 url = "https://anchor.projectserum.com"

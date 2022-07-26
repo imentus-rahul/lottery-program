@@ -8,7 +8,7 @@ use mpl_token_metadata::instruction::{create_master_edition_v3, create_metadata_
 use mpl_token_metadata::state::{Collection, DataV2};
 use switchboard_v2::{VrfAccountData, VrfRequestRandomness};
 
-declare_id!("5AQqMzcMdRcdvGydG6UGrsL4164VwZHuHiHcHYFWhg7");
+declare_id!("5xn6Hd4QsLUJTjbgzDZGmhzb9L476Q82AcDiKsPLPmJP");
 
 #[program]
 pub mod solana_lottery_program {

@@ -145,6 +145,7 @@ async function main() {
       "https://lottery-ticket1.s3.us-west-1.amazonaws.com/ticket.json",
     maxTickets: 100,
     guaranteeWinner: true,
+    sbPayerKeypair: payer,
   };
 
   await client.initLottery(params);
